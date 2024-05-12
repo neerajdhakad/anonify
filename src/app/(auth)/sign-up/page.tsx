@@ -17,11 +17,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+import { signUpSchema } from "@/schemas/signUpSchema";
 import { ApiResponse } from "@/types/ApiResponse";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { signInSchema } from "@/schemas/signInSchema";
 
 // const formSchema = z.object({
 //   username: z.string().min(2, {
@@ -47,44 +47,45 @@ const Page = () => {
   const router = useRouter();
 
   //zod implementation
-  const form = useForm<z.infer<typeof signInSchema>>({
-    resolver: zodResolver(signInSchema),
+  const form = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
-      identifier: "",
+      username: "",
+      email: "",
       password: "",
     },
   });
 
-  // useEffect(() => {
-  //   const checkUsernameUnique = async () => {
-  //     if (username) {
-  //       setIsCheckingUsername(true);
-  //       setUsernameMessage("");
-  //       try {
-  //         const response = await axios.get(
-  //           `/api/check-username-unique?username=${username}`
-  //         );
-  //         setUsernameMessage(response.data.message);
-  //       } catch (error) {
-  //         const axiosError = error as AxiosError<ApiResponse>;
-  //         setUsernameMessage(
-  //           axiosError.response?.data.message ?? "Error checking username"
-  //         );
-  //       } finally {
-  //         setIsCheckingUsername(false);
-  //       }
-  //     }
-  //   };
-  //   checkUsernameUnique();
-  // }, [username]);
+  useEffect(() => {
+    const checkUsernameUnique = async () => {
+      if (username) {
+        setIsCheckingUsername(true);
+        setUsernameMessage("");
+        try {
+          const response = await axios.get(
+            `/api/check-username-unique?username=${username}`
+          );
+          setUsernameMessage(response.data.message);
+        } catch (error) {
+          const axiosError = error as AxiosError<ApiResponse>;
+          setUsernameMessage(
+            axiosError.response?.data.message ?? "Error checking username"
+          );
+        } finally {
+          setIsCheckingUsername(false);
+        }
+      }
+    };
+    checkUsernameUnique();
+  }, [username]);
 
-  const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+  const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
 
     console.log(data);
     setIsSubmitting(true);
     try {
       console.log(data);
-      const response = await axios.post<ApiResponse>(`/api/sign-in`, data);
+      const response = await axios.post<ApiResponse>(`/api/sign-up`, data);
       toast({
         title: "Success",
         description: response.data.message,
@@ -92,11 +93,11 @@ const Page = () => {
       router.replace(`/verify/${username}`);
       setIsSubmitting(false);
     } catch (error) {
-      console.error("Error in Signing In");
+      console.error("Error in Signup of User");
       const axiosError = error as AxiosError<ApiResponse>;
       let errorMessage = axiosError.response?.data.message;
       toast({
-        title: "Login Failed",
+        title: "Signup Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -133,27 +134,39 @@ const Page = () => {
             >
               <FormField
                 control={form.control}
-                name="identifier"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Enter Email or Username</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="username or email"
+                        placeholder="neerajdhakad"
                         {...field}
-                        // onChange={(e) => {
-                        //   field.onChange(e)
-                        //   debounced(e.target.value)
-                        // }}
+                        onChange={(e) => {
+                          field.onChange(e)
+                          debounced(e.target.value)
+                        }}
                       />
                     </FormControl>
-                      {/* {isCheckingUsername && <Loader2 className="animate-spin"/>}
-                      <p className={`text-sm ${usernameMessage === "Username is Unique" ? `text-green-500` : `text-red-500`}`}> {usernameMessage}</p> */}
+                      {isCheckingUsername && <Loader2 className="animate-spin"/>}
+                      <p className={`text-sm ${usernameMessage === "Username is Unique" ? `text-green-500` : `text-red-500`}`}> {usernameMessage}</p>
                     <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
-              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="neeraj.dhakad@gmail.com" {...field} />
+                    </FormControl>
+                    <FormMessage className="text-red-500" />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="password"
@@ -178,7 +191,7 @@ const Page = () => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                   </>
                 ) : (
-                  `SignIn`
+                  `Signup`
                 )}
               </Button>
             </form>
@@ -186,12 +199,12 @@ const Page = () => {
           </div>
           <div className="text-center mt-4">
             <p>
-              New Member?{" "}
+              Already a member?{" "}
               <Link
-                href="/sign-up"
+                href="/sign-in"
                 className="text-blue-600 hover:text-blue-800"
               >
-                Sign up
+                Sign in
               </Link>
             </p>
           </div>

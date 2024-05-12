@@ -5,7 +5,6 @@ import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
 import { Message } from "@/model/User";
 import { User } from "next-auth";
-import mongoose from "mongoose";
 
 export async function POST(request: Request) {
   await dbConnect();
