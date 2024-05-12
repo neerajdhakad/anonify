@@ -11,17 +11,18 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Form,
-  FormControl, 
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import { ApiResponse } from "@/types/ApiResponse";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { signInSchema } from "@/schemas/signInSchema";
+import { signIn } from "next-auth/react";
 
 // const formSchema = z.object({
 //   username: z.string().min(2, {
@@ -30,14 +31,7 @@ import { signInSchema } from "@/schemas/signInSchema";
 // });
 
 const Page = () => {
-  const [username, setUsername] = useState("");
-  const [usernameMessage, setUsernameMessage] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const debounced = useDebounceCallback(setUsername, 300);
-
+ 
   const { toast } = useToast();
   // toast({
   //   title: "Scheduled: Catch up",
@@ -79,31 +73,32 @@ const Page = () => {
   // }, [username]);
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+    const result = await signIn("credentials", {
+      redirect: false,
+      identifier: data.identifier,
+      password: data.password,
+    });
 
-    console.log(data);
-    setIsSubmitting(true);
-    try {
-      console.log(data);
-      const response = await axios.post<ApiResponse>(`/api/sign-in`, data);
-      toast({
-        title: "Success",
-        description: response.data.message,
-      });
-      router.replace(`/verify/${username}`);
-      setIsSubmitting(false);
-    } catch (error) {
-      console.error("Error in Signing In");
-      const axiosError = error as AxiosError<ApiResponse>;
-      let errorMessage = axiosError.response?.data.message;
-      toast({
-        title: "Login Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
+    if (result?.error) {
+      if (result.error == "CredentialSignin") {
+        toast({
+          title: "Login Failed",
+          description: "Incorrect username or password",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    }
+
+    if (result?.url) {
+      router.replace("/dashboard");
     }
   };
-
 
   return (
     <>
@@ -119,70 +114,60 @@ const Page = () => {
         <div className="bg-red-200 hidden md:block w-3/5 min-h-screen ">
           <div className="flex items-center justify-center pt-20 flex-col">
             <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-              Join Annonify
+              JWelcome back to Anonify
             </h1>
-            <p className="mb-4">Sign up to start your anonymous adventure</p>
+            <p className="mb-4">Sign In to start your anonymous adventure</p>
           </div>
         </div>
         <div className="flex flex-col justify-center items-center w-full md:w-2/5 min-h-screen">
-         <div className="w-full px-24">
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6  w-full"
-            >
-              <FormField
-                control={form.control}
-                name="identifier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Enter Email or Username</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="username or email"
-                        {...field}
-                        // onChange={(e) => {
-                        //   field.onChange(e)
-                        //   debounced(e.target.value)
-                        // }}
-                      />
-                    </FormControl>
-                      {/* {isCheckingUsername && <Loader2 className="animate-spin"/>}
-                      <p className={`text-sm ${usernameMessage === "Username is Unique" ? `text-green-500` : `text-red-500`}`}> {usernameMessage}</p> */}
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••"
-                        {...field}
-                        // className="text-gray-200"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" variant={"secondary"} size={"lg"} disabled={isSubmitting} className="w-full border" >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
-                  </>
-                ) : (
-                  `SignIn`
-                )}
-              </Button>
-            </form>
-          </Form>
+          <div className="w-full px-24">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6  w-full"
+              >
+                <FormField
+                  control={form.control}
+                  name="identifier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Enter Email or Username</FormLabel>
+                      <FormControl>
+                        <Input placeholder="username or email" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-red-500" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-500" />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  variant={"secondary"}
+                  size={"lg"}
+                  // disabled={isSubmitting}
+                  className="w-full border"
+                >
+                  Signin
+                </Button>
+              </form>
+            </Form>
           </div>
           <div className="text-center mt-4">
             <p>
